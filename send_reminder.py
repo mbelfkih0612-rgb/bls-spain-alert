@@ -12,5 +12,5 @@ data = {
     "chat_id": CHAT_ID,
     "text": message
 }
-
+ 
 requests.post(url, data=data)
