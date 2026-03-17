@@ -1,16 +1,48 @@
 import os
+import hashlib
 import requests
+from bs4 import BeautifulSoup
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
 
-message = "🔔 Rappel BLS Espagne Tanger"
+URL = "https://blsspainmorocco.com/tangier/french/"
+STATE_FILE = "last_hash.txt"
 
-url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+def send_telegram(message):
+    api_url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+    requests.post(api_url, data={"chat_id": CHAT_ID, "text": message}, timeout=20)
 
-data = {
-    "chat_id": CHAT_ID,
-    "text": message
-}
- 
-requests.post(url, data=data)
+def get_page_text():
+    response = requests.get(URL, headers={"User-Agent": "Mozilla/5.0"}, timeout=30)
+    soup = BeautifulSoup(response.text, "html.parser")
+
+    for tag in soup(["script", "style", "noscript"]):
+        tag.decompose()
+
+    text = soup.get_text(separator=" ", strip=True)
+    return " ".join(text.split())
+
+def get_hash(text):
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+def load_old_hash():
+    if os.path.exists(STATE_FILE):
+        with open(STATE_FILE, "r", encoding="utf-8") as f:
+            return f.read().strip()
+    return None
+
+def save_hash(value):
+    with open(STATE_FILE, "w", encoding="utf-8") as f:
+        f.write(value)
+
+page_text = get_page_text()
+new_hash = get_hash(page_text)
+old_hash = load_old_hash()
+
+if old_hash is None:
+    save_hash(new_hash)
+    send_telegram("✅ Surveillance BLS Tanger activée.")
+elif new_hash != old_hash:
+    save_hash(new_hash)
+    send_telegram("🚨 Changement détecté sur la page BLS Tanger.")
