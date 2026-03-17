@@ -13,16 +13,31 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Restore previous state
+        uses: actions/cache/restore@v4
+        with:
+          path: last_hash.txt
+          key: bls-state-${{ github.run_id }}
+          restore-keys: |
+            bls-state-
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - name: Install requests
-        run: pip install requests
+      - name: Install dependencies
+        run: pip install requests beautifulsoup4
 
       - name: Run bot
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
         run: python send_reminder.py
+
+      - name: Save current state
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: last_hash.txt
+          key: bls-state-${{ github.run_id }}
