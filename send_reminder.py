@@ -9,6 +9,16 @@ CHAT_ID = os.getenv("CHAT_ID")
 URL = "https://blsspainmorocco.com/tangier/french/"
 STATE_FILE = "last_hash.txt"
 
+KEYWORDS = [
+    "rendez-vous",
+    "disponible",
+    "appointment",
+    "available",
+    "slot",
+    "slots",
+    "visa"
+]
+
 def send_telegram(message):
     api_url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
     requests.post(api_url, data={"chat_id": CHAT_ID, "text": message}, timeout=20)
@@ -37,12 +47,21 @@ def save_hash(value):
         f.write(value)
 
 page_text = get_page_text()
+page_text_lower = page_text.lower()
+
 new_hash = get_hash(page_text)
 old_hash = load_old_hash()
 
+found_keywords = [word for word in KEYWORDS if word in page_text_lower]
+
 if old_hash is None:
     save_hash(new_hash)
-    send_telegram("✅ Surveillance BLS Tanger activée.")
+    send_telegram("✅ Surveillance intelligente BLS Tanger activée.")
 elif new_hash != old_hash:
     save_hash(new_hash)
-    send_telegram("🚨 Changement détecté sur la page BLS Tanger.")
+    if found_keywords:
+        send_telegram(
+            "🚨 Changement détecté sur la page BLS Tanger.\n"
+            "Mots trouvés : " + ", ".join(found_keywords) + "\n" +
+            URL
+        )
